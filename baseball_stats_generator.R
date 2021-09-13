@@ -5,6 +5,8 @@ library(dplyr)
 library(bslib)
 library(thematic)
 library(tidyverse)
+library(ggplot2)
+library(ggrepel)
 
 bat_stats <- Batting %>%
   select(yearID, AB, R, H, X2B, X3B, HR, RBI, SB, BB, SO, HBP, GIDP) %>%
@@ -35,10 +37,10 @@ pitch_stats <- Pitching %>%
          "W_rate" = W/G, 
          "L_rate" = L/G, 
          "CG_rate" = CG/G, 
-         "HR_rate" = HR/IPouts/3,
-         "WHIP" = (BB+H)/IPouts/3,
-         "SO_rate" = SO/IPouts/3, 
-         "HBP_rate" = HBP/IPouts/3
+         "HR_rate" = HR/(IPouts/3),
+         "WHIP" = (BB+H)/(IPouts/3),
+         "SO_rate" = SO/(IPouts/3), 
+         "HBP_rate" = HBP/(IPouts/3)
          )
 
 # Merge People and Batting datasets to have first and last names of players
@@ -94,10 +96,10 @@ total_data_pitch <- total_data_pitch %>%
          "W_rate" = W/G, 
          "L_rate" = L/G, 
          "CG_rate" = CG/G, 
-         "HR_rate" = HR/IPouts/3,
-         "WHIP" = (BB+H)/IPouts/3,
-         "SO_rate" = SO/IPouts/3, 
-         "HBP_rate" = HBP/IPouts/3
+         "HR_rate" = HR/(IPouts/3),
+         "WHIP" = (BB+H)/(IPouts/3),
+         "SO_rate" = SO/(IPouts/3), 
+         "HBP_rate" = HBP/(IPouts/3)
   )
 
 total_data_pitch[is.na(total_data_pitch)] <- 0
@@ -110,25 +112,45 @@ ui <- navbarPage(
   tabPanel(
     title = "Home",
     fluidRow(
-             column(4, offset = 4,
+             column(5, offset = 4,
              tags$h1("About the Data"),
              "You may use this app to visually explore relationships between several
-             well-known baseball stats. The data is from the Lahman package in R and 
-             the datasets were altered to only contain numbers from 1939 and later. 
-             Each stat was grouped by year and the sum of all stats was calculated.
+             well-known baseball stats, and to compare specific statistics between 
+             two hitters or pitchers. The data is from the Lahman package in R and 
+             the datasets were altered to only contain numbers from 1939-2020.",
+             tags$br(), tags$hr(),
+             tags$h3("Batting and Pitching tabs"),
+             "Each stat was grouped by year and the sum of all stats was calculated.
              Each datapoint on a graph will represent a total year's worth 
-             of whatever stat you have chosen.",
+             of whatever stats you have chosen.",
              tags$br(), tags$br(),
              "I recommend to, when picking two stats to look at, use the _rate variables
              to do the comparing, as the other stats are heavily reliant on how many 
              games that were played.",
-             tags$h5("Example:"),
+             tags$h6("Example:"),
              "A player who plays 162 games is likely to have
              more homeruns than a player who played 10 games. Say the player who played 162 games
              homered 15 times while the 10-game player homered 5 times. The total number
              of homers would not be a good representation of a hitter's power since the 10-game 
              player averaged a homerun every 2 games while the one who played the full
-             season averaged a homerun every 10.8 games."
+             season averaged a homerun every 10.8 games.",
+             tags$br(), tags$br(),
+             "These tabs would be used to investigate stats which may be related to each other.
+             Look for noticeable trends in the graphs when picking two stats to compare.
+             This is not to say that there aren't variables in here that are dependent
+             on other variables; it is only used to investigate possible trends between
+             certain statistics. For example, HR_rate and SO_rate are commonly known to have
+             a positive relationship, that is, the more often a player hits homeruns, the more
+             often he is expected to strikeout.",
+             tags$br(), tags$hr(),
+             tags$h3("Hitter and Pitcher Comparison tabs"),
+             "In these tabs, pick two players and a stat by which to compare them. The
+             stats represent a player's career total, as long as he played his whole career
+             after 1939. Otherwise, it will only total those numbers which were accumulated 
+             after 1939. Players who played before 1939 will not be available to compare,
+             and the same goes for players who have the same name (e.g. Vladimir Guerrero, 
+             Ken Griffey) because of the nature of the dataset used.",
+             tags$br(), tags$br(), tags$br()
              )
            )
           ),
@@ -145,11 +167,11 @@ ui <- navbarPage(
            selectInput(inputId = "bat_stat_1", label = "Stat 1",
                        choices = c("AVG", "R", "H", "X2B", "X3B", "HR", "RBI", "SB", "BB", "SO", "HBP", 
                        "GIDP", "R_rate", "X2B_rate", "X3B_rate", "HR_rate", "RBI_rate",
-                       "SB_rate", "BB_rate", "SO_rate", "HBP_rate", "GIDP_rate"), selected = "R_rate"),
+                       "SB_rate", "BB_rate", "SO_rate", "HBP_rate", "GIDP_rate"), selected = "HR_rate"),
            selectInput(inputId = "bat_stat_2", label = "Stat 2",
                        choices = c("AVG", "R", "H", "X2B", "X3B", "HR", "RBI", "SB", "BB", "SO", "HBP", 
                        "GIDP", "R_rate", "X2B_rate", "X3B_rate", "HR_rate", "RBI_rate",
-                       "SB_rate", "BB_rate", "SO_rate", "HBP_rate", "GIDP_rate"), selected = "H_rate")),
+                       "SB_rate", "BB_rate", "SO_rate", "HBP_rate", "GIDP_rate"), selected = "SO_rate")),
             tags$h5("Legend:"), 
                     "AVG = Batting Average", tags$br(),
                     "R = Runs", tags$br(),
@@ -187,7 +209,7 @@ ui <- navbarPage(
               selectInput(inputId = "pitch_stat_2", label = "Stat 2",
                        choices = c("W", "L", "IP", "H", "ER", "HR", "BB", "SO", "BAOpp", "ERA",
                                    "HBP", "W_rate", "L_rate", "CG_rate","HR_rate",
-                                   "WHIP", "SO_rate","HBP_rate"), selected = "HR_rate")),
+                                   "WHIP", "SO_rate","HBP_rate"), selected = "WHIP")),
            tags$h5("Legend:"), 
            "W = Wins", tags$br(),
            "L = Losses", tags$br(),
@@ -236,7 +258,7 @@ ui <- navbarPage(
         tags$h5("Notes: "),
         "This data is from 1939-present, so anyone who played before 1939 will not appear 
         and those who played before 1939 and past, it will only show the total stats from
-        1939 on.",
+        1939-2020.",
         tags$br(), tags$br(),
         "Also, players with the same exact name (e.g. Vladimir Guerrero, Ken Griffey) 
         will come up as the same person because of the nature of the dataset."
@@ -270,7 +292,7 @@ ui <- navbarPage(
         tags$h5("Notes: "),
         "This data is from 1939-present, so anyone who played before 1939 will not appear 
         and those who played before 1939 and past, it will only show the total stats from
-        1939 on.",
+        1939-2020.",
         tags$br(), tags$br(),
         "Also, players with the same exact name (e.g. Vladimir Guerrero, Ken Griffey) 
         will come up as the same person because of the nature of the dataset."
@@ -289,18 +311,42 @@ server <- function(input, output) {
   
   output$batting <- renderPlot({
     points <- data.frame(bat_stats[input$bat_stat_1], bat_stats[input$bat_stat_2])
-    plot(points, xlab = input$bat_stat_1, ylab = input$bat_stat_2, 
-         main = c(input$bat_stat_1, " vs ", input$bat_stat_2), pch = 16)
-    grid(col = "gray", lty = 2)
+    colnames(points) <- c("Stat_1", "Stat_2")
+    gg<-ggplot(points, aes(x = Stat_1, y = Stat_2)) +
+      geom_text_repel(aes(label = bat_stats$yearID)) +
+      geom_point() + geom_smooth(method = "lm", se = F) +
+      labs(title = "Stat 1 vs. Stat 2",
+           x = input$bat_stat_1, y = input$bat_stat_2)
+    gg + theme(
+      plot.title = element_text(face = "bold", size = 35, hjust = .5),
+      axis.title.x = element_text(size = 20),
+      axis.title.y = element_text(size = 20)
+    )
+    
+    #plot(points, xlab = input$bat_stat_1, ylab = input$bat_stat_2, 
+    #     main = c(input$bat_stat_1, " vs ", input$bat_stat_2), pch = 16)
+    #grid(col = "gray", lty = 2)
   })
   
   # Pitching Output
   
-  output$pitching <- renderPlot({
-    points <- data.frame(pitch_stats[input$pitch_stat_1], pitch_stats[input$pitch_stat_2])
-    plot(points, xlab = input$pitch_stat_1, ylab = input$pitch_stat_2, 
-         main = c(input$pitch_stat_1, " vs ", input$pitch_stat_2), pch = 16)
-    grid(col = "gray", lty = 2)
+    output$pitching <- renderPlot({
+      points <- data.frame(pitch_stats[input$pitch_stat_1], pitch_stats[input$pitch_stat_2])
+      colnames(points) <- c("Stat_1", "Stat_2")
+      gg<-ggplot(points, aes(x = Stat_1, y = Stat_2)) +
+        geom_text_repel(aes(label = pitch_stats$yearID)) +
+        geom_point() + geom_smooth(method = "lm", se = F) +
+        labs(title = "Stat 1 vs. Stat 2",
+             x = input$pitch_stat_1, y = input$pitch_stat_2)
+      gg + theme(
+        plot.title = element_text(face = "bold", size = 35, hjust = .5),
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20)
+      )
+      
+    #plot(points, xlab = input$pitch_stat_1, ylab = input$pitch_stat_2, 
+    #     main = c(input$pitch_stat_1, " vs ", input$pitch_stat_2), pch = 16)
+    #grid(col = "gray", lty = 2)
   })
   
   # Hitter Comparison Output
@@ -308,13 +354,25 @@ server <- function(input, output) {
   hitter_row1 <- reactive({which(total_data_bat == input$hitter1, arr.ind = TRUE)[1]})
   hitter_row2 <- reactive({which(total_data_bat == input$hitter2, arr.ind = TRUE)[1]})
   output$bat_barplot <- renderPlot({
-    points <- c(as.numeric(total_data_bat[hitter_row1(),input$comp_bat_stat]),
-                as.numeric(total_data_bat[hitter_row2(),input$comp_bat_stat]))
-    bp <- barplot(points, col = c("gray", "gray"), 
-                  main = c(input$comp_bat_stat),
-                  names.arg = c(input$hitter1, input$hitter2), ylab = input$comp_bat_stat,
-                  width = c(1, 1))
-    text(bp, 0, round(points, 3), cex = 2, pos = 3)
+    points <- data.frame(c(as.numeric(total_data_bat[hitter_row1(),input$comp_bat_stat]),
+                as.numeric(total_data_bat[hitter_row2(),input$comp_bat_stat])),
+                c(input$hitter1, input$hitter2))
+    colnames(points) <- c("stats", "Hitter")
+    bp <- ggplot(points,  aes(x = Hitter, y = stats)) +
+      geom_col(width = .5) + 
+      theme_gray() +
+      geom_text(aes(label = stats), vjust = -.5, size = 4) +
+      labs(title = input$comp_bat_stat, y = input$comp_bat_stat)
+    bp + theme(
+      plot.title = element_text(face = "bold", size = 35, hjust = .5),
+      axis.title.x = element_text(size = 20),
+      axis.title.y = element_text(size = 20)
+    )
+    #bp <- barplot(points, col = c("gray", "gray"), 
+     #             main = c(input$comp_bat_stat),
+      #            names.arg = c(input$hitter1, input$hitter2), ylab = input$comp_bat_stat,
+       #           width = c(1, 1))
+    #text(bp, 0, round(points, 3), cex = 2, pos = 3)
   })
   
   # Pitcher Comparison Output
@@ -322,13 +380,25 @@ server <- function(input, output) {
   pitcher_row1 <- reactive({which(total_data_pitch == input$pitcher1, arr.ind = TRUE)[1]})
   pitcher_row2 <- reactive({which(total_data_pitch == input$pitcher2, arr.ind = TRUE)[1]})
   output$pitch_barplot <- renderPlot({
-    points <- c(as.numeric(total_data_pitch[pitcher_row1(),input$comp_pitch_stat]),
-                as.numeric(total_data_pitch[pitcher_row2(),input$comp_pitch_stat]))
-    bp <- barplot(points, col = c("gray", "gray"), 
-            main = c(input$comp_pitch_stat),
-            names.arg = c(input$pitcher1, input$pitcher2), ylab = input$comp_pitch_stat,
-            width = c(1, 1))
-    text(bp, 0, round(points, 3), cex = 2, pos = 3)
+    points <- data.frame(c(as.numeric(total_data_pitch[pitcher_row1(),input$comp_pitch_stat]),
+                as.numeric(total_data_pitch[pitcher_row2(),input$comp_pitch_stat])),
+                c(input$pitcher1, input$pitcher2))
+    colnames(points) <- c("stats", "Pitcher")
+    bp <- ggplot(points,  aes(x = Pitcher, y = stats)) +
+      geom_col(width = .5) + 
+      theme_gray() +
+      geom_text(aes(label = stats), vjust = -.5, size = 4) +
+      labs(title = input$comp_pitch_stat, y = input$comp_pitch_stat)
+    bp + theme(
+      plot.title = element_text(face = "bold", size = 35, hjust = .5),
+      axis.title.x = element_text(size = 20),
+      axis.title.y = element_text(size = 20)
+    )
+    #bp <- barplot(points, col = c("gray", "gray"), 
+     #       main = c(input$comp_pitch_stat),
+      #      names.arg = c(input$pitcher1, input$pitcher2), ylab = input$comp_pitch_stat,
+       #     width = c(1, 1))
+    #text(bp, 0, round(points, 3), cex = 2, pos = 3)
   })
 }
 shinyApp(ui = ui, server = server)
