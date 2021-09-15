@@ -188,7 +188,11 @@ ui <- navbarPage(
                     "*_rate = * / At Bats * 100"
         ),
       column(
-        8, mainPanel(plotOutput("batting"))
+        8, mainPanel(plotOutput("batting"), 
+        tags$br(), tags$hr(),
+        tags$h2("Linear Model of Stat 1 vs. Stat 2"),
+        tags$br(), tags$br(),
+        verbatimTextOutput("bat_mod"))
         )
       )
   ),
@@ -231,7 +235,11 @@ ui <- navbarPage(
            "HBP_rate = Hit by Pitches per Inning"
            ),
       column(
-        8, mainPanel(plotOutput("pitching"))
+        8, mainPanel(plotOutput("pitching"), 
+        tags$br(), tags$hr(),
+        tags$h2("Linear Model of Stat 1 vs. Stat 2"),
+        tags$br(), tags$br(),
+        verbatimTextOutput("pitch_mod"))
         )
       )
       ),
@@ -305,14 +313,15 @@ ui <- navbarPage(
   )
 )
   
+
 server <- function(input, output) {
   
   # Hitting Output
   
   output$batting <- renderPlot({
-    points <- data.frame(bat_stats[input$bat_stat_1], bat_stats[input$bat_stat_2])
-    colnames(points) <- c("Stat_1", "Stat_2")
-    gg<-ggplot(points, aes(x = Stat_1, y = Stat_2)) +
+    points_bat <- data.frame(bat_stats[input$bat_stat_1], bat_stats[input$bat_stat_2])
+    colnames(points_bat) <- c("Stat_1", "Stat_2")
+    gg<-ggplot(points_bat, aes(x = Stat_1, y = Stat_2)) +
       geom_text_repel(aes(label = bat_stats$yearID)) +
       geom_point() + geom_smooth(method = "lm", se = F) +
       labs(title = "Stat 1 vs. Stat 2",
@@ -326,6 +335,13 @@ server <- function(input, output) {
     #plot(points, xlab = input$bat_stat_1, ylab = input$bat_stat_2, 
     #     main = c(input$bat_stat_1, " vs ", input$bat_stat_2), pch = 16)
     #grid(col = "gray", lty = 2)
+  })
+  
+  output$bat_mod <- renderPrint({
+    points_bat <- data.frame(bat_stats[input$bat_stat_1], bat_stats[input$bat_stat_2])
+    colnames(points_bat) <- c("Stat_1", "Stat_2")
+    lin_mod <- reactive({lm(Stat_1 ~ Stat_2, data = points_bat)})
+    summary(lin_mod())
   })
   
   # Pitching Output
@@ -348,6 +364,13 @@ server <- function(input, output) {
     #     main = c(input$pitch_stat_1, " vs ", input$pitch_stat_2), pch = 16)
     #grid(col = "gray", lty = 2)
   })
+    
+    output$pitch_mod <- renderPrint({
+      points <- data.frame(pitch_stats[input$pitch_stat_1], pitch_stats[input$pitch_stat_2])
+      colnames(points) <- c("Stat_1", "Stat_2")
+      lin_mod <- reactive({lm(Stat_1 ~ Stat_2, data = points)})
+      summary(lin_mod())
+    })
   
   # Hitter Comparison Output
   
